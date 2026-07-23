@@ -1,14 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
+import { checkSignIn, createNewAnon } from './lib/supabase'
 
-const COLUMNS = ['To Do', 'In Progress', 'Review', 'Done']
+const COLUMNS = ['To Do', 'In Progress', 'In Review', 'Done']
 
 const INITIAL_CARDS = [
   { id: 1, column: 'To Do', order: 1, text: 'Placeholder task one' },
   { id: 2, column: 'To Do', order: 2, text: 'Placeholder task two' },
   { id: 3, column: 'In Progress', order: 1, text: 'Placeholder task three' },
   { id: 4, column: 'In Progress', order: 2, text: 'Placeholder task four' },
-  { id: 5, column: 'Review', order: 1, text: 'Placeholder task five' },
+  { id: 5, column: 'In Review', order: 1, text: 'Placeholder task five' },
   { id: 6, column: 'Done', order: 1, text: 'Placeholder task six' },
 ]
 
@@ -51,6 +52,26 @@ function App() {
   // { targetId, position: 'before' | 'after' } when hovering over a card,
   // { column } when the card would be placed at the end/bottom of a column.
   const [indicator, setIndicator] = useState(null)
+  const [user, setUser] = useState(null);
+  const [checking, setChecking] = useState(true);
+  const [signingIn, setSigningIn] = useState(false);
+
+  useEffect(() => {
+    checkSignIn().then(setUser).finally(() => setChecking(false));
+  }, []);
+
+  const handleCreateAccount = async() => {
+    setSigningIn(true);
+    try {
+      setUser(await createNewAnon());
+    }
+    catch {
+      console.error(error);
+    }
+    finally {
+      setSigningIn(false);
+    }
+  }
 
   const clearDragState = () => {
     setDraggingId(null)
@@ -143,6 +164,18 @@ function App() {
     if (card.id === draggingId) cls += ' dragging'
     if (indicator?.targetId === card.id) cls += ` indicate-${indicator.position}`
     return cls
+  }
+
+  if (checking) {
+    return <p>Loading...</p>
+  }
+
+  if (!user) {
+    return (
+      <button onClick={handleCreateAccount} disabled={signingIn}>
+        {signingIn ? 'Creating...' : 'Create an anonymous account' }
+      </button>
+    )
   }
 
   return (
