@@ -117,7 +117,7 @@ router.post('/:id/move', async (req, res) => {
         const cards = await fetchCards(supabase);
         const afterMove = moveCard(
             cards,
-            Number(req.params.id),
+            req.params.id,
             req.body.column,
             req.body.targetId ?? null,
             req.body.position
@@ -131,10 +131,10 @@ router.post('/:id/move', async (req, res) => {
     }
 });
 
-router.delete('/:id/move', async (req, res) => {
+router.delete('/:id', async (req, res) => {
     console.log("Delete called");
     const supabase = supabaseForUser(req);
-    const id = Number(req.params.id);
+    const id = req.params.id;
     try {
         const cards = await fetchCards(supabase);
         const removed = cards.find((c) => c.id === id);

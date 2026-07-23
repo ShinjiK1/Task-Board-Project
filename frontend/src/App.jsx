@@ -1,17 +1,8 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { checkSignIn, createNewAnon, getTasks } from './lib/supabase'
+import { checkSignIn, createNewAnon, getTasks, createTask, moveTask, deleteTask } from './lib/supabase'
 
 const COLUMNS = ['To Do', 'In Progress', 'In Review', 'Done']
-
-const INITIAL_CARDS = [
-  { id: 1, column: 'To Do', order: 1, text: 'Placeholder task one' },
-  { id: 2, column: 'To Do', order: 2, text: 'Placeholder task two' },
-  { id: 3, column: 'In Progress', order: 1, text: 'Placeholder task three' },
-  { id: 4, column: 'In Progress', order: 2, text: 'Placeholder task four' },
-  { id: 5, column: 'In Review', order: 1, text: 'Placeholder task five' },
-  { id: 6, column: 'Done', order: 1, text: 'Placeholder task six' },
-]
 
 // Moves a card to "toColumn", inserting at the position(before/after) the card with
 // "targetId", or appending to the end of the column when targetId is null.
@@ -59,7 +50,7 @@ function deleteCard(cards, cardId) {
 }
 
 function App() {
-  const [cards, setCards] = useState(INITIAL_CARDS)
+  const [cards, setCards] = useState([])
   const [draggingId, setDraggingId] = useState(null)
   const [dragOverColumn, setDragOverColumn] = useState(null)
   // Used to display where the dragged card will go, format is
@@ -78,6 +69,7 @@ function App() {
     checkSignIn().then(setUser).finally(() => setChecking(false));
   }, []);
 
+  // Gets board information from database
   const refreshCards = async () => {
     try {
       setCards(await getTasks())
@@ -86,11 +78,16 @@ function App() {
     }
   }
 
+  // Load the board from the database whenever a user is signed in — covers
+  // both fresh sign-ups and returning visitors with a stored session
+  useEffect(() => {
+    if (user) refreshCards()
+  }, [user]);
+
   const handleCreateAccount = async() => {
     setSigningIn(true);
     try {
       setUser(await createNewAnon());
-      getTasks();
     }
     catch (error) {
       console.error(error);
@@ -100,15 +97,26 @@ function App() {
     }
   }
 
-  const handleCreateTask = (event) => {
+  const handleCreateTask = async (event) => {
     event.preventDefault()
     const title = newTitle.trim()
     if (!title) return
-    setCards((prev) => {
-      const id = prev.reduce((max, c) => Math.max(max, c.id), 0) + 1
-      const order = prev.filter((c) => c.column === newStatus).length + 1
-      return [...prev, { id, column: newStatus, order, text: title }]
-    })
+    try {
+      // Wait for the insert so the local card carries the database's real id —
+      // a locally-invented id would break later moves/deletes of this card
+      const row = await createTask({
+        title,
+        status: newStatus,
+        column_order: cards.filter((c) => c.column === newStatus).length + 1,
+        user_id: user.id,
+      })
+      setCards((prev) => [
+        ...prev,
+        { id: row.id, column: row.status, order: row.column_order, text: row.title },
+      ])
+    } catch (error) {
+      console.error(error)
+    }
     setNewTitle('')
     setNewStatus(COLUMNS[0])
     setShowCreateForm(false)
@@ -123,11 +131,18 @@ function App() {
 
   const handleTrashDrop = (event) => {
     event.preventDefault()
-    const draggedId = Number(event.dataTransfer.getData('text/plain'))
-    if (draggedId) {
-      setCards((prev) => deleteCard(prev, draggedId))
-    }
+    console.log("At start of trash drop");
+    const draggedId = event.dataTransfer.getData('text/plain')
+    console.log(draggedId);
     clearDragState()
+    if (draggedId) {
+      console.log("Trash drop");
+      setCards((prev) => deleteCard(prev, draggedId))
+      deleteTask(draggedId).catch((error) => {
+        console.error(error)
+        refreshCards() // failed on the server — snap back to its state
+      })
+    }
   }
 
   const dropPosition = (event) => {
@@ -160,12 +175,18 @@ function App() {
   const handleCardDrop = (event, card) => {
     event.preventDefault()
     event.stopPropagation()
-    const draggedId = Number(event.dataTransfer.getData('text/plain'))
-    if (draggedId) {
-      const position = dropPosition(event)
-      setCards((prev) => moveCard(prev, draggedId, card.column, card.id, position))
-    }
+    console.log("At start of card drop");
+    const draggedId = event.dataTransfer.getData('text/plain')
+    const position = dropPosition(event)
     clearDragState()
+    if (draggedId && draggedId !== card.id) {
+      console.log("Card dropped");
+      setCards((prev) => moveCard(prev, draggedId, card.column, card.id, position))
+      moveTask(draggedId, { column: card.column, targetId: card.id, position }).catch((error) => {
+        console.error(error)
+        refreshCards() // failed on the server — snap back to its state
+      })
+    }
   }
 
   // For drags over a column's non-card areas (header, gaps between cards,
@@ -177,7 +198,7 @@ function App() {
     for (const el of event.currentTarget.querySelectorAll('[data-card-id]')) {
       const rect = el.getBoundingClientRect()
       if (event.clientY < rect.top + rect.height / 2) {
-        return Number(el.dataset.cardId)
+        return el.dataset.cardId
       }
     }
     return null
@@ -202,12 +223,18 @@ function App() {
 
   const handleColumnDrop = (event, column) => {
     event.preventDefault()
-    const draggedId = Number(event.dataTransfer.getData('text/plain'))
-    if (draggedId) {
-      const targetId = findCardBelowCursor(event)
-      setCards((prev) => moveCard(prev, draggedId, column, targetId, 'before'))
-    }
+    console.log("At start of column drop");
+    const draggedId = event.dataTransfer.getData('text/plain')
+    const targetId = findCardBelowCursor(event)
     clearDragState()
+    if (draggedId) {
+      console.log("Column drop");
+      setCards((prev) => moveCard(prev, draggedId, column, targetId, 'before'))
+      moveTask(draggedId, { column, targetId, position: 'before' }).catch((error) => {
+        console.error(error)
+        refreshCards() // failed on the server — snap back to its state
+      })
+    }
   }
 
   const cardClass = (card) => {
