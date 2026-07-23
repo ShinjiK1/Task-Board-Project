@@ -31,17 +31,7 @@ export async function createNewAnon() {
     //Create some dummy/placeholder tasks for new accounts to see stuff
     try {
         for (const task of PLACEHOLDER_TASKS) {
-            const response = await fetch('/api/tasks', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${data.session.access_token}`,
-                },
-                body: JSON.stringify({ ...task, user_id: data.user.id }),
-            });
-            if (!response.ok) {
-                throw new Error(`Seeding "${task.title}" failed: ${response.status}`);
-            }
+            await createTask({...task, user_id: data.user.id})
         }
     } catch (seedError) {
         console.error(seedError);
@@ -50,16 +40,57 @@ export async function createNewAnon() {
     return data.user;
 }
 
-export async function getTasks() {
+async function authHeaders() {
     const { data: { session } } = await supabase.auth.getSession();
+    return session ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
+
+export async function getTasks() {
+    console.log("Making get request");
     const response = await fetch('/api/tasks', {
-        headers: session
-            ? { Authorization: `Bearer ${session.access_token}` }
-            : {},
+        headers: await authHeaders()
     });
     if (!response.ok) {
         throw new Error(`Failed to load tasks: ${response.status}`);
     }
 
     return await response.json();
+}
+
+export async function createTask(task) {
+    console.log("Making post request");
+    const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+        body: JSON.stringify(task),
+    });
+    if (!response.ok) {
+        throw new Error(`Creating task failed: ${response.status}`);
+    }
+    return await response.json();
+}
+
+// move: { column, targetId, position } — insert before/after targetId in column,
+// or append to the end of column when targetId is null
+export async function moveTask(id, move) {
+    console.log("Making request to move task");
+    const response = await fetch(`/api/tasks/${id}/move`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+        body: JSON.stringify(move),
+    });
+    if (!response.ok) {
+        throw new Error(`Moving task failed: ${response.status}`);
+    }
+}
+
+export async function deleteTask(id) {
+    console.log("Making delete request");
+    const response = await fetch(`/api/tasks/${id}`, {
+        method: 'DELETE',
+        headers: await authHeaders()
+    });
+    if (!response.ok) {
+        throw new Error(`Deleting task failed: ${response.status}`);
+    }
 }

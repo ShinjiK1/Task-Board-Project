@@ -78,6 +78,14 @@ function App() {
     checkSignIn().then(setUser).finally(() => setChecking(false));
   }, []);
 
+  const refreshCards = async () => {
+    try {
+      setCards(await getTasks())
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
   const handleCreateAccount = async() => {
     setSigningIn(true);
     try {
