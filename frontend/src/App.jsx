@@ -131,12 +131,10 @@ function App() {
 
   const handleTrashDrop = (event) => {
     event.preventDefault()
-    console.log("At start of trash drop");
     const draggedId = event.dataTransfer.getData('text/plain')
     console.log(draggedId);
     clearDragState()
     if (draggedId) {
-      console.log("Trash drop");
       setCards((prev) => deleteCard(prev, draggedId))
       deleteTask(draggedId).catch((error) => {
         console.error(error)
@@ -175,12 +173,10 @@ function App() {
   const handleCardDrop = (event, card) => {
     event.preventDefault()
     event.stopPropagation()
-    console.log("At start of card drop");
     const draggedId = event.dataTransfer.getData('text/plain')
     const position = dropPosition(event)
     clearDragState()
     if (draggedId && draggedId !== card.id) {
-      console.log("Card dropped");
       setCards((prev) => moveCard(prev, draggedId, card.column, card.id, position))
       moveTask(draggedId, { column: card.column, targetId: card.id, position }).catch((error) => {
         console.error(error)
@@ -223,12 +219,10 @@ function App() {
 
   const handleColumnDrop = (event, column) => {
     event.preventDefault()
-    console.log("At start of column drop");
     const draggedId = event.dataTransfer.getData('text/plain')
     const targetId = findCardBelowCursor(event)
     clearDragState()
     if (draggedId) {
-      console.log("Column drop");
       setCards((prev) => moveCard(prev, draggedId, column, targetId, 'before'))
       moveTask(draggedId, { column, targetId, position: 'before' }).catch((error) => {
         console.error(error)

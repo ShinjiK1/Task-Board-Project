@@ -85,7 +85,6 @@ async function applyChanges(supabase, before, after) {
 }
 
 router.get('/', async (req, res) => {
-    console.log("Get called");
     const supabase = supabaseForUser(req);
     try {
         const cards = await fetchCards(supabase);
@@ -98,7 +97,6 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-    console.log("Post called");
     const supabase = supabaseForUser(req);
     const {data, error} = await supabase.from("Tasks").insert({
         title: req.body.title, status: req.body.status, user_id: req.body.user_id, column_order: req.body.column_order
@@ -111,7 +109,6 @@ router.post('/', async (req, res) => {
 });
 
 router.post('/:id/move', async (req, res) => {
-    console.log("Move called");
     const supabase = supabaseForUser(req);
     try {
         const cards = await fetchCards(supabase);
@@ -132,7 +129,6 @@ router.post('/:id/move', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
-    console.log("Delete called");
     const supabase = supabaseForUser(req);
     const id = req.params.id;
     try {

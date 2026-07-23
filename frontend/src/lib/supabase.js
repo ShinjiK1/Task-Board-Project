@@ -46,7 +46,6 @@ async function authHeaders() {
 }
 
 export async function getTasks() {
-    console.log("Making get request");
     const response = await fetch('/api/tasks', {
         headers: await authHeaders()
     });
@@ -58,7 +57,6 @@ export async function getTasks() {
 }
 
 export async function createTask(task) {
-    console.log("Making post request");
     const response = await fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
@@ -73,7 +71,6 @@ export async function createTask(task) {
 // move: { column, targetId, position } — insert before/after targetId in column,
 // or append to the end of column when targetId is null
 export async function moveTask(id, move) {
-    console.log("Making request to move task");
     const response = await fetch(`/api/tasks/${id}/move`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
@@ -85,7 +82,6 @@ export async function moveTask(id, move) {
 }
 
 export async function deleteTask(id) {
-    console.log("Making delete request");
     const response = await fetch(`/api/tasks/${id}`, {
         method: 'DELETE',
         headers: await authHeaders()
