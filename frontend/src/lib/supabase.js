@@ -18,5 +18,12 @@ export async function createNewAnon() {
     if (error) {
         throw error;
     }
+    console.log("Got here");
+
+    //Create some dummy/placeholder tasks for new accounts to see stuff
+    try {
+        const response = fetch()
+    }
+
     return data.user;
 }
