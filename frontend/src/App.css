@@ -1,0 +1,82 @@
+.board {
+  padding: 24px;
+  text-align: left;
+}
+
+.board h1 {
+  font-size: 32px;
+  margin: 0 0 24px;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  align-items: start;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.column {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 320px;
+  transition: border-color 0.15s, background-color 0.15s;
+
+  h2 {
+    font-size: 16px;
+    margin: 0 0 12px;
+    padding: 0 4px;
+  }
+}
+
+.column.drag-over {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 15px;
+  color: var(--text-h);
+  cursor: grab;
+  box-shadow: var(--shadow);
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.card.dragging {
+  opacity: 0.4;
+}
+
+.card.indicate-before {
+  box-shadow: 0 -5px 0 -2px var(--accent), var(--shadow);
+}
+
+.card.indicate-after {
+  box-shadow: 0 5px 0 -2px var(--accent), var(--shadow);
+}
+
+.drop-end {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}

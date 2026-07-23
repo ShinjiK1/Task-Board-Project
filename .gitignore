@@ -1,0 +1,19 @@
+# Dependencies (root, frontend, and backend all have one)
+node_modules/
+
+# Build output
+dist/
+
+# Environment files — typically hold secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Editor / OS clutter
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
