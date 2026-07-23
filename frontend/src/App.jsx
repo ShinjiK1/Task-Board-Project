@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { checkSignIn, createNewAnon } from './lib/supabase'
+import { checkSignIn, createNewAnon, getTasks } from './lib/supabase'
 
 const COLUMNS = ['To Do', 'In Progress', 'In Review', 'Done']
 
@@ -44,6 +44,20 @@ function moveCard(cards, draggedId, toColumn, targetId, position) {
   })
 }
 
+// Removes a card and closes the gap it leaves: every card below it in its
+// column shifts up by one so orders stay contiguous.
+function deleteCard(cards, cardId) {
+  const removed = cards.find((c) => c.id === cardId)
+  if (!removed) return cards
+  return cards
+    .filter((c) => c.id !== cardId)
+    .map((c) =>
+      c.column === removed.column && c.order > removed.order
+        ? { ...c, order: c.order - 1 }
+        : c
+    )
+}
+
 function App() {
   const [cards, setCards] = useState(INITIAL_CARDS)
   const [draggingId, setDraggingId] = useState(null)
@@ -55,6 +69,10 @@ function App() {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
+  const [trashHover, setTrashHover] = useState(false)
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [newTitle, setNewTitle] = useState('')
+  const [newStatus, setNewStatus] = useState(COLUMNS[0])
 
   useEffect(() => {
     checkSignIn().then(setUser).finally(() => setChecking(false));
@@ -64,8 +82,9 @@ function App() {
     setSigningIn(true);
     try {
       setUser(await createNewAnon());
+      getTasks();
     }
-    catch {
+    catch (error) {
       console.error(error);
     }
     finally {
@@ -73,10 +92,34 @@ function App() {
     }
   }
 
+  const handleCreateTask = (event) => {
+    event.preventDefault()
+    const title = newTitle.trim()
+    if (!title) return
+    setCards((prev) => {
+      const id = prev.reduce((max, c) => Math.max(max, c.id), 0) + 1
+      const order = prev.filter((c) => c.column === newStatus).length + 1
+      return [...prev, { id, column: newStatus, order, text: title }]
+    })
+    setNewTitle('')
+    setNewStatus(COLUMNS[0])
+    setShowCreateForm(false)
+  }
+
   const clearDragState = () => {
     setDraggingId(null)
     setDragOverColumn(null)
     setIndicator(null)
+    setTrashHover(false)
+  }
+
+  const handleTrashDrop = (event) => {
+    event.preventDefault()
+    const draggedId = Number(event.dataTransfer.getData('text/plain'))
+    if (draggedId) {
+      setCards((prev) => deleteCard(prev, draggedId))
+    }
+    clearDragState()
   }
 
   const dropPosition = (event) => {
@@ -172,15 +215,35 @@ function App() {
 
   if (!user) {
     return (
-      <button onClick={handleCreateAccount} disabled={signingIn}>
-        {signingIn ? 'Creating...' : 'Create an anonymous account' }
-      </button>
+      <div className="signup-screen">
+        <button
+          className="signup-button"
+          onClick={handleCreateAccount}
+          disabled={signingIn}
+        >
+          {signingIn ? 'Creating...' : 'Create an anonymous account' }
+        </button>
+      </div>
     )
   }
 
   return (
     <main className="board">
-      <h1>Task Board</h1>
+      <header className="board-header">
+        <h1>Task Board</h1>
+        <img
+          src={trashHover ? '/OpenTrash.png' : '/ClosedTrash.png'}
+          alt="Drag a task here to delete it"
+          className={`trash${trashHover ? ' open' : ''}`}
+          onDragOver={(event) => {
+            event.preventDefault()
+            event.dataTransfer.dropEffect = 'move'
+          }}
+          onDragEnter={() => setTrashHover(true)}
+          onDragLeave={() => setTrashHover(false)}
+          onDrop={handleTrashDrop}
+        />
+      </header>
       <div className="columns">
         {COLUMNS.map((column) => {
           const columnCards = cards
@@ -222,6 +285,38 @@ function App() {
           )
         })}
       </div>
+      {showCreateForm ? (
+        <form className="create-form" onSubmit={handleCreateTask}>
+          <input
+            type="text"
+            placeholder="Task title"
+            value={newTitle}
+            onChange={(event) => setNewTitle(event.target.value)}
+            autoFocus
+          />
+          <select
+            value={newStatus}
+            onChange={(event) => setNewStatus(event.target.value)}
+          >
+            {COLUMNS.map((column) => (
+              <option key={column} value={column}>
+                {column}
+              </option>
+            ))}
+          </select>
+          <button type="submit">Add</button>
+          <button type="button" onClick={() => setShowCreateForm(false)}>
+            Cancel
+          </button>
+        </form>
+      ) : (
+        <button
+          className="create-task-button"
+          onClick={() => setShowCreateForm(true)}
+        >
+          Create Task
+        </button>
+      )}
     </main>
   )
 }

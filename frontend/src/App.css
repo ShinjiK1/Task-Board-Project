@@ -3,9 +3,46 @@
   text-align: left;
 }
 
+.board-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
 .board h1 {
   font-size: 32px;
-  margin: 0 0 24px;
+  margin: 0;
+}
+
+.trash {
+  width: 144px;
+  height: 144px;
+  object-fit: contain;
+  transition: transform 0.15s;
+  /* Centered in the gutter right of the bordered #root column: the gutter
+     runs from 50% + 563px (the container's right border) to the viewport
+     edge, so its midpoint is 75% + 281px. Fixed positioning also keeps the
+     can in view while scrolling mid-drag. */
+  position: fixed;
+  top: 110px;
+  left: calc(75% + 281px);
+  transform: translateX(-50%);
+
+  /* Not enough room beside the container — tuck it back into the header. */
+  @media (max-width: 1460px) {
+    position: static;
+    margin-left: auto;
+    transform: none;
+  }
+}
+
+.trash.open {
+  transform: translateX(-50%) scale(1.15);
+
+  @media (max-width: 1460px) {
+    transform: scale(1.15);
+  }
 }
 
 .columns {
@@ -79,4 +116,107 @@
   height: 3px;
   border-radius: 2px;
   background: var(--accent);
+}
+
+.create-task-button {
+  margin-top: 16px;
+  font-size: 16px;
+  font-family: var(--sans);
+  padding: 10px 20px;
+  border-radius: 8px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.3s;
+
+  &:hover {
+    border-color: var(--accent-border);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.create-form {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+
+  input,
+  select {
+    font-size: 15px;
+    font-family: var(--sans);
+    color: var(--text-h);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  input:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  button {
+    font-size: 15px;
+    font-family: var(--sans);
+    padding: 8px 16px;
+    border-radius: 6px;
+    color: var(--accent);
+    background: var(--accent-bg);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.3s;
+
+    &:hover {
+      border-color: var(--accent-border);
+    }
+  }
+
+  button[type='button'] {
+    color: var(--text);
+    background: transparent;
+    border-color: var(--border);
+  }
+}
+
+.signup-screen {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.signup-button {
+  font-size: 20px;
+  font-family: var(--sans);
+  padding: 16px 32px;
+  border-radius: 10px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.3s;
+
+  &:hover:enabled {
+    border-color: var(--accent-border);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
 }
