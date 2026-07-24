@@ -10,6 +10,13 @@ app.get("/", (req, res) => {
     res.send("This is the server base address");
 })
 
-app.listen(PORT, () => {
-    console.log(`Running on port ${PORT}`);
-})
+module.exports = app;
+
+// Listen only when run directly (npm run dev / nodemon). When imported by
+// the Vercel serverless wrapper, no port is opened — Vercel passes requests
+// to the exported app itself.
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Running on port ${PORT}`);
+    });
+}
