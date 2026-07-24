@@ -66,6 +66,7 @@ function App() {
   const [newTitle, setNewTitle] = useState('')
   const [newStatus, setNewStatus] = useState(COLUMNS[0])
   const [newPriority, setNewPriority] = useState('Medium')
+  const [searchQuery, setSearchQuery] = useState('')
   // Which priorities are visible on the board; all checked by default
   const [visiblePriorities, setVisiblePriorities] = useState({
     Low: true,
@@ -169,9 +170,12 @@ function App() {
     return event.clientY < rect.top + rect.height / 2 ? 'before' : 'after'
   }
 
-  // Re-check every priority so the whole board is visible while placing
-  const showAllPriorities = () =>
+  // Re-check every priority and clear the search so the whole board is
+  // visible while placing
+  const showAllTasks = () => {
     setVisiblePriorities(Object.fromEntries(PRIORITIES.map((p) => [p, true])))
+    setSearchQuery('')
+  }
 
   const handleDragStart = (event, cardId) => {
     event.dataTransfer.setData('text/plain', String(cardId))
@@ -180,7 +184,7 @@ function App() {
     // dragstart makes Chrome cancel the drag
     setTimeout(() => {
       setDraggingId(cardId)
-      showAllPriorities()
+      showAllTasks()
     }, 0)
   }
 
@@ -326,6 +330,13 @@ function App() {
         />
       </header>
       <aside className="filter-panel">
+        <input
+          type="search"
+          className="search-input"
+          placeholder="Search tasks"
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+        />
         <h2>Priority</h2>
         {PRIORITIES.map((priority) => (
           <label key={priority} className={`filter-option ${priority.toLowerCase()}`}>
@@ -343,9 +354,11 @@ function App() {
       </aside>
       <div className="columns">
         {COLUMNS.map((column) => {
+          const query = searchQuery.trim().toLowerCase()
           const columnCards = cards
             .filter((card) => card.column === column)
             .filter((card) => !card.priority || visiblePriorities[card.priority])
+            .filter((card) => !query || card.text.toLowerCase().includes(query))
             .sort((a, b) => a.order - b.order)
           return (
             <section
@@ -361,8 +374,14 @@ function App() {
               }}
               onDrop={(event) => handleColumnDrop(event, column)}
             >
-              <h2>{column}</h2>
+              <h2>
+                {column}
+                <span className="count">{columnCards.length}</span>
+              </h2>
               <div className="cards">
+                {columnCards.length === 0 && (
+                  <p className="empty-hint">Drop tasks here</p>
+                )}
                 {columnCards.map((card) => (
                   <article
                     key={card.id}
@@ -421,7 +440,7 @@ function App() {
         <button
           className="create-task-button"
           onClick={() => {
-            showAllPriorities()
+            showAllTasks()
             setShowCreateForm(true)
           }}
         >

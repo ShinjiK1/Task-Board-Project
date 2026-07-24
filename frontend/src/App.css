@@ -2,11 +2,21 @@
   --priority-low: #4ade80;
   --priority-medium: #fbbf24;
   --priority-high: #f87171;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 .board {
   padding: 24px;
   text-align: left;
+  /* Fill the viewport so the columns can share one fixed height */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  @media (max-width: 1024px) {
+    display: block;
+  }
 }
 
 .board-header {
@@ -55,7 +65,11 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  align-items: start;
+  /* Grid stretches every column to the same height; overflow scrolls
+     inside each column instead of growing it. Basis of 80% (rather than
+     growing to fill) leaves breathing room below the create-task button */
+  flex: 0 1 80%;
+  min-height: 320px;
 
   @media (max-width: 1024px) {
     grid-template-columns: repeat(2, 1fr);
@@ -71,12 +85,25 @@
   border-radius: 8px;
   padding: 12px;
   min-height: 320px;
+  display: flex;
+  flex-direction: column;
   transition: border-color 0.15s, background-color 0.15s;
 
   h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 16px;
     margin: 0 0 12px;
     padding: 0 4px;
+  }
+
+  .count {
+    font-size: 12px;
+    color: var(--accent);
+    background: var(--accent-bg);
+    border-radius: 999px;
+    padding: 1px 8px;
   }
 }
 
@@ -89,6 +116,20 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* Take the column's remaining height; scroll internally when full */
+  flex: 1;
+  min-height: 40px;
+  overflow-y: auto;
+  padding: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.empty-hint {
+  margin: auto;
+  font-size: 14px;
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 .card {
@@ -99,7 +140,12 @@
   font-size: 15px;
   color: var(--text-h);
   cursor: grab;
-  box-shadow: var(--shadow);
+  box-shadow: var(--card-shadow);
+  transition: box-shadow 0.15s;
+
+  &:hover {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.16);
+  }
 
   &:active {
     cursor: grabbing;
@@ -142,6 +188,23 @@
     margin: 0;
   }
 
+  .search-input {
+    width: 140px;
+    font-size: 14px;
+    font-family: var(--sans);
+    color: var(--text-h);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    margin-bottom: 4px;
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+  }
+
   /* Not enough room beside the container — sit above the columns instead */
   @media (max-width: 1460px) {
     position: static;
@@ -152,6 +215,12 @@
 
     h2 {
       margin-right: 6px;
+    }
+
+    .search-input {
+      width: 180px;
+      margin-bottom: 0;
+      margin-right: 10px;
     }
   }
 }
@@ -188,11 +257,11 @@
 }
 
 .card.indicate-before {
-  box-shadow: 0 -5px 0 -2px var(--accent), var(--shadow);
+  box-shadow: 0 -5px 0 -2px var(--accent), var(--card-shadow);
 }
 
 .card.indicate-after {
-  box-shadow: 0 5px 0 -2px var(--accent), var(--shadow);
+  box-shadow: 0 5px 0 -2px var(--accent), var(--card-shadow);
 }
 
 .drop-end {
