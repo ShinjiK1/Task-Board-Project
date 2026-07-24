@@ -8,7 +8,8 @@ const toCard = (row) => ({
     id: row.id,
     text: row.title,
     column: row.status,
-    order: row.column_order
+    order: row.column_order,
+    priority: row.priority
 });
 
 async function fetchCards(supabase) {
@@ -99,7 +100,8 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
     const supabase = supabaseForUser(req);
     const {data, error} = await supabase.from("Tasks").insert({
-        title: req.body.title, status: req.body.status, user_id: req.body.user_id, column_order: req.body.column_order
+        title: req.body.title, status: req.body.status, user_id: req.body.user_id,
+        column_order: req.body.column_order, priority: req.body.priority
     }).select().single();
     if (error) {
         console.error(error);

@@ -14,12 +14,12 @@ export async function checkSignIn() {
 }
 
 const PLACEHOLDER_TASKS = [
-    { title: 'Placeholder task one', status: 'To Do', column_order: 1 },
-    { title: 'Placeholder task two', status: 'To Do', column_order: 2 },
-    { title: 'Placeholder task three', status: 'In Progress', column_order: 1 },
-    { title: 'Placeholder task four', status: 'In Progress', column_order: 2 },
-    { title: 'Placeholder task five', status: 'In Review', column_order: 1 },
-    { title: 'Placeholder task six', status: 'Done', column_order: 1 },
+    { title: 'Placeholder task one', status: 'To Do', column_order: 1, priority: 'High' },
+    { title: 'Placeholder task two', status: 'To Do', column_order: 2, priority: 'Low' },
+    { title: 'Placeholder task three', status: 'In Progress', column_order: 1, priority: 'Medium' },
+    { title: 'Placeholder task four', status: 'In Progress', column_order: 2, priority: 'Low' },
+    { title: 'Placeholder task five', status: 'In Review', column_order: 1, priority: 'Medium' },
+    { title: 'Placeholder task six', status: 'Done', column_order: 1, priority: 'High' },
 ];
 
 export async function createNewAnon() {

@@ -1,3 +1,9 @@
+:root {
+  --priority-low: #4ade80;
+  --priority-medium: #fbbf24;
+  --priority-high: #f87171;
+}
+
 .board {
   padding: 24px;
   text-align: left;
@@ -100,8 +106,85 @@
   }
 }
 
+.card.priority-low {
+  border-left: 4px solid var(--priority-low);
+}
+
+.card.priority-medium {
+  border-left: 4px solid var(--priority-medium);
+}
+
+.card.priority-high {
+  border-left: 4px solid var(--priority-high);
+}
+
 .card.dragging {
   opacity: 0.4;
+}
+
+.filter-panel {
+  /* Centered in the gutter left of the bordered #root column — the mirror
+     of the trash can's spot on the right */
+  position: fixed;
+  top: 110px;
+  left: calc(25% - 281px);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 18px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  h2 {
+    font-size: 15px;
+    margin: 0;
+  }
+
+  /* Not enough room beside the container — sit above the columns instead */
+  @media (max-width: 1460px) {
+    position: static;
+    transform: none;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 16px;
+
+    h2 {
+      margin-right: 6px;
+    }
+  }
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: var(--text-h);
+  cursor: pointer;
+
+  input {
+    accent-color: var(--accent);
+    cursor: pointer;
+    margin: 0;
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  &.low .dot {
+    background: var(--priority-low);
+  }
+  &.medium .dot {
+    background: var(--priority-medium);
+  }
+  &.high .dot {
+    background: var(--priority-high);
+  }
 }
 
 .card.indicate-before {
@@ -195,6 +278,63 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.loading-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--accent-bg);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(90vw, 480px);
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #b91c1c;
+  color: #fff;
+  font-size: 15px;
+  box-shadow: var(--shadow);
+  z-index: 10;
+
+  button {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+  }
 }
 
 .signup-button {

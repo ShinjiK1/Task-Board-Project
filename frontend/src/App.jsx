@@ -3,6 +3,7 @@ import './App.css'
 import { checkSignIn, createNewAnon, getTasks, createTask, moveTask, deleteTask } from './lib/supabase'
 
 const COLUMNS = ['To Do', 'In Progress', 'In Review', 'Done']
+const PRIORITIES = ['Low', 'Medium', 'High']
 
 // Moves a card to "toColumn", inserting at the position(before/after) the card with
 // "targetId", or appending to the end of the column when targetId is null.
@@ -64,10 +65,25 @@ function App() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newStatus, setNewStatus] = useState(COLUMNS[0])
+  const [newPriority, setNewPriority] = useState('Medium')
+  // Which priorities are visible on the board; all checked by default
+  const [visiblePriorities, setVisiblePriorities] = useState({
+    Low: true,
+    Medium: true,
+    High: true,
+  })
+  const [boardLoading, setBoardLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState(null)
 
   useEffect(() => {
     checkSignIn().then(setUser).finally(() => setChecking(false));
   }, []);
+
+  useEffect(() => {
+    if (!errorMessage) return
+    const timer = setTimeout(() => setErrorMessage(null), 5000)
+    return () => clearTimeout(timer)
+  }, [errorMessage]);
 
   // Gets board information from database
   const refreshCards = async () => {
@@ -75,13 +91,16 @@ function App() {
       setCards(await getTasks())
     } catch (error) {
       console.error(error)
+      setErrorMessage('Could not load your tasks. Check your connection and reload.')
     }
   }
 
   // Load the board from the database whenever a user is signed in — covers
   // both fresh sign-ups and returning visitors with a stored session
   useEffect(() => {
-    if (user) refreshCards()
+    if (!user) return
+    setBoardLoading(true)
+    refreshCards().finally(() => setBoardLoading(false))
   }, [user]);
 
   const handleCreateAccount = async() => {
@@ -102,23 +121,24 @@ function App() {
     const title = newTitle.trim()
     if (!title) return
     try {
-      // Wait for the insert so the local card carries the database's real id —
-      // a locally-invented id would break later moves/deletes of this card
       const row = await createTask({
         title,
         status: newStatus,
         column_order: cards.filter((c) => c.column === newStatus).length + 1,
+        priority: newPriority,
         user_id: user.id,
       })
       setCards((prev) => [
         ...prev,
-        { id: row.id, column: row.status, order: row.column_order, text: row.title },
+        { id: row.id, column: row.status, order: row.column_order, text: row.title, priority: row.priority },
       ])
     } catch (error) {
       console.error(error)
+      setErrorMessage('Could not create the task. Please try again.')
     }
     setNewTitle('')
     setNewStatus(COLUMNS[0])
+    setNewPriority('Medium')
     setShowCreateForm(false)
   }
 
@@ -138,6 +158,7 @@ function App() {
       setCards((prev) => deleteCard(prev, draggedId))
       deleteTask(draggedId).catch((error) => {
         console.error(error)
+        setErrorMessage('Could not delete the task — the board was restored.')
         refreshCards() // failed on the server — snap back to its state
       })
     }
@@ -148,10 +169,19 @@ function App() {
     return event.clientY < rect.top + rect.height / 2 ? 'before' : 'after'
   }
 
+  // Re-check every priority so the whole board is visible while placing
+  const showAllPriorities = () =>
+    setVisiblePriorities(Object.fromEntries(PRIORITIES.map((p) => [p, true])))
+
   const handleDragStart = (event, cardId) => {
     event.dataTransfer.setData('text/plain', String(cardId))
     event.dataTransfer.effectAllowed = 'move'
-    setTimeout(() => setDraggingId(cardId), 0)
+    // Deferred alongside setDraggingId: re-rendering (unhiding cards) during
+    // dragstart makes Chrome cancel the drag
+    setTimeout(() => {
+      setDraggingId(cardId)
+      showAllPriorities()
+    }, 0)
   }
 
   const handleCardDragOver = (event, card) => {
@@ -180,16 +210,15 @@ function App() {
       setCards((prev) => moveCard(prev, draggedId, card.column, card.id, position))
       moveTask(draggedId, { column: card.column, targetId: card.id, position }).catch((error) => {
         console.error(error)
+        setErrorMessage('Could not save that move — the board was restored.')
         refreshCards() // failed on the server — snap back to its state
       })
     }
   }
 
-  // For drags over a column's non-card areas (header, gaps between cards,
-  // space below the last card): the card the cursor sits above, i.e. the
-  // first card whose vertical midpoint is below the cursor. Cards come back
-  // from querySelectorAll in document order, which matches the sorted render
-  // order. Null means the cursor is below every card — append to the end.
+  // For drags over a column's non-card areas. Tells which card is directly
+  // below the cursor, so that the indicator can highlight where the dragged
+  // card will be placed. Null means the cursor is below every card -> append to the end.
   const findCardBelowCursor = (event) => {
     for (const el of event.currentTarget.querySelectorAll('[data-card-id]')) {
       const rect = el.getBoundingClientRect()
@@ -226,6 +255,7 @@ function App() {
       setCards((prev) => moveCard(prev, draggedId, column, targetId, 'before'))
       moveTask(draggedId, { column, targetId, position: 'before' }).catch((error) => {
         console.error(error)
+        setErrorMessage('Could not save that move — the board was restored.')
         refreshCards() // failed on the server — snap back to its state
       })
     }
@@ -233,13 +263,31 @@ function App() {
 
   const cardClass = (card) => {
     let cls = 'card'
+    if (card.priority) cls += ` priority-${card.priority.toLowerCase()}`
     if (card.id === draggingId) cls += ' dragging'
     if (indicator?.targetId === card.id) cls += ` indicate-${indicator.position}`
     return cls
   }
 
+  const errorToast = errorMessage && (
+    <div className="error-toast" role="alert">
+      <span>{errorMessage}</span>
+      <button onClick={() => setErrorMessage(null)} aria-label="Dismiss">
+        ✕
+      </button>
+    </div>
+  )
+
+  const loadingScreen = (message) => (
+    <div className="loading-screen">
+      <div className="spinner" />
+      <p>{message}</p>
+      {errorToast}
+    </div>
+  )
+
   if (checking) {
-    return <p>Loading...</p>
+    return loadingScreen('Loading...')
   }
 
   if (!user) {
@@ -254,6 +302,10 @@ function App() {
         </button>
       </div>
     )
+  }
+
+  if (boardLoading) {
+    return loadingScreen('Loading your board...')
   }
 
   return (
@@ -273,10 +325,27 @@ function App() {
           onDrop={handleTrashDrop}
         />
       </header>
+      <aside className="filter-panel">
+        <h2>Priority</h2>
+        {PRIORITIES.map((priority) => (
+          <label key={priority} className={`filter-option ${priority.toLowerCase()}`}>
+            <input
+              type="checkbox"
+              checked={visiblePriorities[priority]}
+              onChange={() =>
+                setVisiblePriorities((prev) => ({ ...prev, [priority]: !prev[priority] }))
+              }
+            />
+            <span className="dot" />
+            {priority}
+          </label>
+        ))}
+      </aside>
       <div className="columns">
         {COLUMNS.map((column) => {
           const columnCards = cards
             .filter((card) => card.column === column)
+            .filter((card) => !card.priority || visiblePriorities[card.priority])
             .sort((a, b) => a.order - b.order)
           return (
             <section
@@ -333,6 +402,16 @@ function App() {
               </option>
             ))}
           </select>
+          <select
+            value={newPriority}
+            onChange={(event) => setNewPriority(event.target.value)}
+          >
+            {PRIORITIES.map((priority) => (
+              <option key={priority} value={priority}>
+                {priority}
+              </option>
+            ))}
+          </select>
           <button type="submit">Add</button>
           <button type="button" onClick={() => setShowCreateForm(false)}>
             Cancel
@@ -341,11 +420,15 @@ function App() {
       ) : (
         <button
           className="create-task-button"
-          onClick={() => setShowCreateForm(true)}
+          onClick={() => {
+            showAllPriorities()
+            setShowCreateForm(true)
+          }}
         >
           Create Task
         </button>
       )}
+      {errorToast}
     </main>
   )
 }
